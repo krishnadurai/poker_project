@@ -1,0 +1,178 @@
+import pygame
+from pygame.locals import *
+from socket import *
+import sys
+import thread
+
+DEALER_SERVER = '192.168.117.4'
+# Thread to receive data
+def recv_data():
+    PORT = 11716
+    HOST = DEALER_SERVER
+    s_recv_data = socket(AF_INET, SOCK_STREAM)
+    s_recv_data.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+    s_recv_data.bind((HOST, PORT))
+    print 'waiting for conn in recv_data'
+    s_recv_data.listen(1)
+    conn_recv_data,addr = s_recv_data.accept()
+
+    while True:
+        try:
+            data = conn_recv_data.recv(4096)
+            if data != '':
+                print data
+                req_type = data.partition(':')[0].partition('=')[2]
+                if req_type == 'cards':
+                    print req_type
+                    card1 = data.partition(':')[2].partition(',')[0]
+                    card2 = data.partition(':')[2].partition(',')[2]
+                    poker_data.hand_cards[0] = 'images/' + card1
+                    poker_data.hand_cards[1] = 'images/' + card2
+                if req_type == 'data':
+                    print req_type
+                    temp = data.partition(':')[2]
+                    paramlist = temp.split(',')
+                    for param in paramlist:
+                        if param.partition('=')[0] == 'nop':
+                            poker_data.NO_OF_PLAYERS = int(param.partition('=')[2])
+                        if param.partition('=')[0] == 'yourPos':
+                            poker_data.mypos = int(param.partition('=')[2])
+                        if param.partition('=')[0] == 'live':
+                            for i in range(0, poker_data.NO_OF_PLAYERS):
+                                poker_data.ingame[i] = int(param.partition('=')[2])
+                        if param.partition('=')[0] == 'sb':
+                            poker_data.small_blind = int(param.partition('=')[2])
+
+        except:
+            print 'connect error'
+            sys.exit()
+        
+# Start Thread
+try:
+    thread.start_new_thread(recv_data, ())
+except:
+    print'unable to start thread'
+
+HOST = DEALER_SERVER
+PORT = 11717
+s = socket(AF_INET, SOCK_STREAM)
+try:
+    s.connect((HOST, PORT))
+    s.send('req')
+
+except:
+    print 'connect error'
+
+
+class Message:
+    mypos = 8
+    small_blind = 5
+    NO_OF_PLAYERS = 0
+    ingame = [0, 0, 0, 0, 0, 0, 0, 0]
+    money_in_pot = [0, 0, 0, 0, 0, 0, 0, 0]
+    remaining_money = [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
+    player_cards1 = ["images/front", "images/front", "images/front",
+                     "images/front", "images/front", "images/front",
+                     "images/front"]
+    player_cards2 = ["images/front", "images/front", "images/front",
+                     "images/front", "images/front", "images/front",
+                     "images/front"]
+    hand_cards = ["images/front", "images/front"]
+    com_cards = ["images/front", "images/front", "images/front",
+                 "images/front", "images/front"]
+
+    def __init__(self):
+        print 'object created'
+
+
+#Creating message object
+poker_data = Message()
+pos = [[320, 300], [170, 300], [60, 165], [170, 25], [360, 25],
+       [550, 25], [655, 165], [550, 300]]
+pot_pos = [[396, 290], [206, 290], [170, 213], [206, 131], [396, 131],
+           [586, 131], [630, 213], [586, 290]]
+money_pos = [[396, 406], [206, 406], [30, 213], [206, 15], [396, 15],
+             [586, 15], [765, 213], [586, 406]]
+SCREEN_X = 795
+SCREEN_Y = 511
+bg = "images/back.jpg"
+
+pygame.init()
+screen = pygame.display.set_mode((SCREEN_X, SCREEN_Y), 0, 32)
+screen.fill((0, 0, 255))
+pygame.display.set_caption("Poker Project")
+icon = pygame.image.load("images/icon.png").convert()
+
+button = pygame.image.load("images/button").convert()
+pygame.display.set_icon(icon)
+back = pygame.image.load(bg).convert()
+screen = pygame.display.get_surface()
+clock = pygame.time.Clock()
+
+while True:
+    font = pygame.font.Font(None, 24)
+    small_blind_image = pygame.image.load("images/sb.png").convert()
+    hc_images = [pygame.image.load(poker_data.hand_cards[0]).convert(),
+                 pygame.image.load(poker_data.hand_cards[1]).convert()]
+    cc_image = []
+    for i in range(0, 5):
+        cc_image.append(pygame.image.load(poker_data.com_cards[i])
+                        .convert())
+    card1_image = []
+    card2_image = []
+    for i in range(0, 7):
+        card1_image.append(pygame.image.load(poker_data.player_cards1[i])
+                           .convert())
+        card2_image.append(pygame.image.load(poker_data.player_cards2[i])
+                           .convert())
+    clock.tick(15)
+    for event in pygame.event.get():
+        if event.type == QUIT:
+            pygame.quit()
+            sys.exit()
+    screen.blit(back, (0, 0))
+    screen.blit(hc_images[0], (pos[0][0], pos[0][1]))
+    screen.blit(hc_images[1], (pos[0][0] + 72, pos[0][1]))
+    for i in range(0, 5):
+        screen.blit(cc_image[i], (i * 72 + 225, 50 + 96 + 20))
+    j = (poker_data.mypos + 1) % 8
+    for i in range(1, 8):
+        if(poker_data.ingame[j]):
+            screen.blit(card1_image[i - 1], (pos[i][0], pos[i][1]))
+            screen.blit(card2_image[i - 1], (pos[i][0] + 15, pos[i][1]))
+        j += 1
+        j %= 8
+    j = poker_data.mypos % 8
+    for i in range(0, 8):
+        if(poker_data.ingame[j]):
+            rem_money_text = font.render("$" + str
+                                         (poker_data.remaining_money[i]),
+                                         1, (0, 255, 0))
+            bet_money_text = font.render("$" + str(poker_data.money_in_pot[i]),
+                                         1, (255, 0, 0))
+            rem_money_textpos = rem_money_text.get_rect()
+            bet_money_textpos = bet_money_text.get_rect()
+            rem_money_textpos.centerx = money_pos[i][0]
+            bet_money_textpos.centerx = pot_pos[i][0]
+            rem_money_textpos.centery = money_pos[i][1]
+            bet_money_textpos.centery = pot_pos[i][1]
+            screen.blit(rem_money_text, rem_money_textpos)
+            screen.blit(bet_money_text, bet_money_textpos)
+        j += 1
+        j %= 8
+    screen.blit(button, (50, 450))
+    fold = font.render("FOLD", 1, (255, 0, 0))
+    screen.blit(fold, (75, 465))
+    screen.blit(button, (280, 450))
+    call = font.render("CALL/", 1, (255, 0, 0))
+    screen.blit(call, (305, 455))
+    check = font.render("CHECK", 1, (255, 0, 0))
+    screen.blit(check, (305, 475))
+    screen.blit(button, (510, 450))
+    rise = font.render("RAISE", 1, (255, 0, 0))
+    screen.blit(check, (535, 465))
+    sb = 8 + poker_data.small_blind - poker_data.mypos
+    sb %= 8
+    screen.blit(small_blind_image, (pos[poker_data.small_blind][0]
+                                    - 30, pos[poker_data.small_blind][1]))
+    pygame.display.update()
