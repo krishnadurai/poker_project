@@ -8,7 +8,7 @@ DEALER_SERVER = '192.168.117.4'
 # Thread to receive data
 def recv_data():
     PORT = 11716
-    HOST = DEALER_SERVER
+    HOST = ''
     s_recv_data = socket(AF_INET, SOCK_STREAM)
     s_recv_data.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
     s_recv_data.bind((HOST, PORT))
@@ -31,17 +31,35 @@ def recv_data():
                 if req_type == 'data':
                     print req_type
                     temp = data.partition(':')[2]
-                    paramlist = temp.split(',')
+                    paramlist = temp.split(';')
                     for param in paramlist:
                         if param.partition('=')[0] == 'nop':
                             poker_data.NO_OF_PLAYERS = int(param.partition('=')[2])
-                        if param.partition('=')[0] == 'yourPos':
+                        elif param.partition('=')[0] == 'yourPos':
                             poker_data.mypos = int(param.partition('=')[2])
-                        if param.partition('=')[0] == 'live':
+                        elif param.partition('=')[0] == 'live':
                             for i in range(0, poker_data.NO_OF_PLAYERS):
                                 poker_data.ingame[i] = int(param.partition('=')[2])
-                        if param.partition('=')[0] == 'sb':
+                        elif param.partition('=')[0] == 'sb':
                             poker_data.small_blind = int(param.partition('=')[2])
+                        elif param.partition('=')[0] == 'current_player':
+                            pass
+                        elif param.partition('=')[0] == 'NO_OF_POTS':
+                            pass
+                        elif param.partition('=')[0] == 'last_raised':
+                            pass
+                        elif param.partition('=')[0] == 'players_money':
+                            temp = param.partition('=')[2]
+                            temp = temp.strip('[').strip(']').split(',')
+                            for i in range(len(temp)):
+                                poker_data.remaining_money[i] = int(temp[i])
+                        elif param.partition('=')[0] == 'pot_investment':
+                            temp = param.partition('=')[2]
+                            temp = temp.strip('[').strip(']').split(',')
+                            for i in range(len(temp)):
+                                poker_data.money_in_pot[i] = int(temp[i])
+
+                        
 
         except:
             print 'connect error'
@@ -142,14 +160,16 @@ while True:
             screen.blit(card2_image[i - 1], (pos[i][0] + 15, pos[i][1]))
         j += 1
         j %= 8
-    j = poker_data.mypos % 8
-    for i in range(0, 8):
+    j = 0 #(poker_data.mypos) % 8
+    for k in range(0, 8):
         if(poker_data.ingame[j]):
+            i = k
             rem_money_text = font.render("$" + str
                                          (poker_data.remaining_money[i]),
                                          1, (0, 255, 0))
             bet_money_text = font.render("$" + str(poker_data.money_in_pot[i]),
                                          1, (255, 0, 0))
+            i = (k-poker_data.mypos+8)%8
             rem_money_textpos = rem_money_text.get_rect()
             bet_money_textpos = bet_money_text.get_rect()
             rem_money_textpos.centerx = money_pos[i][0]
@@ -173,6 +193,5 @@ while True:
     screen.blit(check, (535, 465))
     sb = 8 + poker_data.small_blind - poker_data.mypos
     sb %= 8
-    screen.blit(small_blind_image, (pos[poker_data.small_blind][0]
-                                    - 30, pos[poker_data.small_blind][1]))
+    screen.blit(small_blind_image, (pos[sb][0]- 30, pos[sb][1]))
     pygame.display.update()

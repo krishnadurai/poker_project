@@ -7,7 +7,7 @@ import random
 import hand_evaluator
 
 # Variable Initialisation
-NO_OF_PLAYERS = 1
+NO_OF_PLAYERS = 3
 
 INITIAL_MONEY = 1000
 
@@ -15,26 +15,39 @@ MINIMUM_RAISE = 1
 
 small_blind=random.randint(0, NO_OF_PLAYERS-1);
 
+
+# Money in players hand
 players_money = []
 for i in range(0, NO_OF_PLAYERS):
     players_money.append(INITIAL_MONEY)
 
+
+# Players involved in currently
 live_players = ""
 for i in range(0, NO_OF_PLAYERS):
     live_players += "1"
 
+
+NO_OF_POTS = 1
+
+# players in the current pot
+pot_money = [0] * 8
+
+# Will be chaged when pot life ends
+pot_players = []
 current_round = 0
 
-current_player = small_blind
 
+# Player investment in round
 pot_investment = [0] * NO_OF_PLAYERS
-
 pot_investment[small_blind] = 1
-
 big_blind = (small_blind + 1) % NO_OF_PLAYERS
-
 pot_investment[big_blind] = 2
-
+#current_player = (big_blind + 1 ) % NO_OF_PLAYERS
+current_player = 2
+# Player who raised last
+last_raised = big_blind
+last_raised_amt = pot_investment[big_blind]
 
 # data
 SUITS = ('c', 'd', 'h', 's')
@@ -91,12 +104,14 @@ def main():
         print 'cards sent to '
         print HOST
     i = 0
-    """print 'sending data '
-    time.sleep(3)
+    print 'sending data '
+    time.sleep(1)
     while(i < NO_OF_PLAYERS):
-        data = 'req=data:' + 'nop=' + str(NO_OF_PLAYERS) + ',live=' + live_players + ',yourPos=' + str(i) + ",sb=" + str(small_blind)
+        data = 'req=data:' + 'nop=' + str(NO_OF_PLAYERS) + ';live=' + live_players + ';yourPos=' + str(i) + ";sb=" + str(small_blind) + ";current_player=" + str(current_player) + ";NO_OF_POTS=" + str(NO_OF_POTS) + ";last_raised=" + str(last_raised) + ";players_money=" + str(players_money) + ";pot_investment=" +str(pot_investment) + ";last_raised_amt=" + str(last_raised_amt)
         sock[i].send(data)
         i += 1
-    """
+    time.sleep(4)
+    betdata = sock[2].recv(4096)
+    print betdata
 if __name__  ==  '__main__':
     main()
