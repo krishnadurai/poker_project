@@ -6,6 +6,8 @@ import thread
 from Queue import *
 import time
 import threading
+import pygbutton
+import platform
 
 #Socket to receive data
 DEALER_SERVER = '192.168.117.4'
@@ -63,13 +65,11 @@ def handle_data():
                         for i in range(0, poker_data.NO_OF_PLAYERS):
                             poker_data.ingame[i] = int(param.partition('=')[2])
                     elif param.partition('=')[0] == 'current_player':
-                        if int(param.partition('=')[2]) == poker_data.mypos:
-                            print 'attempting to send data'
-                            thread.start_new_thread(send_data, ('100',))
+                        poker_data.current_player = int(param.partition('=')[2])
                     elif param.partition('=')[0] == 'NO_OF_POTS':
                         pass
-                    elif param.partition('=')[0] == 'last_raised':
-                        pass
+                    elif param.partition('=')[0] == 'last_raised_amt':
+                        poker_data.last_raised_amt = int(param.partition('=')[2])
                     elif param.partition('=')[0] == 'players_money':
                         temp = param.partition('=')[2]
                         temp = temp.strip('[').strip(']').split(',')
@@ -137,6 +137,8 @@ class Message:
     ingame = [0, 0, 0, 0, 0, 0, 0, 0]
     money_in_pot = [0, 0, 0, 0, 0, 0, 0, 0]
     remaining_money = [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
+    last_raised_amt = 0
+    current_player = 0
     player_cards1 = ["images/front", "images/front", "images/front",
                      "images/front", "images/front", "images/front",
                      "images/front"]
@@ -168,8 +170,12 @@ screen = pygame.display.set_mode((SCREEN_X, SCREEN_Y), 0, 32)
 screen.fill((0, 0, 255))
 pygame.display.set_caption("Poker Project")
 icon = pygame.image.load("images/icon.png").convert()
+button_fold = pygbutton.PygButton((50, 420, 100, 30), 'FOLD')
+button_call = pygbutton.PygButton((280, 420, 150, 30), 'CALL / CHECK')
+button_raise = pygbutton.PygButton((550, 420, 150, 30), 'BET / RAISE')
+button_turn = pygbutton.PygButton((50, 460, 100, 30), 'Your Turn')
 
-button = pygame.image.load("images/button").convert()
+#button = pygame.image.load("images/button").convert()
 pygame.display.set_icon(icon)
 back = pygame.image.load(bg).convert()
 screen = pygame.display.get_surface()
@@ -193,9 +199,32 @@ while True:
                            .convert())
     clock.tick(15)
     for event in pygame.event.get():
+        fold_events = button_fold.handleEvent(event)
+        call_events = button_call.handleEvent(event)
+        raise_events = button_raise.handleEvent(event)
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
+        elif 'click' in fold_events:
+            print 'Fold button clicked'
+            poker_data.hand_cards[0] = 'images/front'
+            poker_data.hand_cards[1] = 'images/front'
+            button_turn.visible = False
+        elif 'click' in call_events:
+            print 'CALL button clicked'
+            if poker_data.current_player == poker_data.mypos:
+                print 'attempting to send data'
+                thread.start_new_thread(send_data, (poker_data.last_raised_amt,))
+            button_turn.visible = False
+        elif 'click' in raise_events:
+            print 'RAISE button clicked'
+            if poker_data.current_player == poker_data.mypos:
+                print 'attempting to send data'
+                thread.start_new_thread(send_data, (poker_data.last_raised_amt+1,))
+            button_turn.visible = False
+
+
+
     screen.blit(back, (0, 0))
     screen.blit(hc_images[0], (pos[0][0], pos[0][1]))
     screen.blit(hc_images[1], (pos[0][0] + 72, pos[0][1]))
@@ -228,6 +257,7 @@ while True:
             screen.blit(bet_money_text, bet_money_textpos)
         j += 1
         j %= 8
+    '''
     screen.blit(button, (50, 450))
     fold = font.render("FOLD", 1, (255, 0, 0))
     screen.blit(fold, (75, 465))
@@ -239,6 +269,13 @@ while True:
     screen.blit(button, (510, 450))
     rise = font.render("RAISE", 1, (255, 0, 0))
     screen.blit(check, (535, 465))
+    '''
+    button_call.draw(screen)
+    button_raise.draw(screen)
+    button_fold.draw(screen)
+    button_turn.draw(screen)
+    if poker_data.mypos == poker_data.current_player:
+        button_turn.visible = True
     sb = 8 + poker_data.small_blind - poker_data.mypos
     sb %= 8
     screen.blit(small_blind_image, (pos[sb][0]- 30, pos[sb][1]))
