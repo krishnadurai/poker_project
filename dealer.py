@@ -9,7 +9,7 @@ import threading
 import thread 
 
 # Variable Initialisation
-NO_OF_PLAYERS = 2
+NO_OF_PLAYERS = 3
 
 INITIAL_MONEY = 1000
 
@@ -77,19 +77,27 @@ def recv_data():
                 print 'Data received in recv data is ' + data
                 done = 1
         except:
-            print 'wtf'
+            print 'wtf in recv_data'
 
 # Send Data func
 def send_data(data,i):
     try:
         send_sock[i].send(data)
     except:
-        print 'wtf'
+        print 'wtf in send_data'
 
+# SendThemAll func
+def send_them_all(data):
+    for sock in send_sock:
+        try:
+            sock.send(data)
+        except:
+            print 'wtf in send_data'
 # Main
 send_sock=[]
 recv_conn = []
 def main():
+    global current_player
     s = socket(AF_INET, SOCK_STREAM)
     s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
     R_HOST = ''
@@ -151,14 +159,19 @@ def main():
         print 'sending data '
         time.sleep(1)
         while(i < NO_OF_PLAYERS):
-            data = 'req=data:' + 'nop=' + str(NO_OF_PLAYERS) + ';live=' + live_players + ';yourPos=' + str(i) + ";sb=" + str(small_blind) + ";current_player=" + str(current_player) + ";NO_OF_POTS=" + str(NO_OF_POTS) + ";last_raised=" + str(last_raised) + ";players_money=" + str(players_money) + ";pot_investment=" +str(pot_investment) + ";last_raised_amt=" + str(last_raised_amt)
+            data = 'req=data:' + 'nop=' + str(NO_OF_PLAYERS) + ';live=' + live_players + ';yourPos=' + str(i) + ";sb=" + str(small_blind) + ";current_player=" + str(current_player) + ";NO_OF_POTS=" + str(NO_OF_POTS) + ";players_money=" + str(players_money) + ";pot_investment=" +str(pot_investment) + ";last_raised_amt=" + str(last_raised_amt)
             thread.start_new_thread(send_data, (data,i,))
             i += 1
         while(current_player != last_raised): 
+            print 'current player is ' + str(current_player)
+            time.sleep(1)
             t = threading.Thread(target = recv_data , args = ())
             t.start()
             t.join()
-        
+            current_player = (current_player + 1) % NO_OF_PLAYERS
+            if current_player == last_raised:
+                break
+            send_them_all('req=data:current_player=' + str(current_player))
         sys.exit()
 if __name__  ==  '__main__':
     main()
