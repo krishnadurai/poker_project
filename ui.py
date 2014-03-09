@@ -3,81 +3,129 @@ from pygame.locals import *
 from socket import *
 import sys
 import thread
+from Queue import *
+import time
+import threading
 
+#Socket to receive data
 DEALER_SERVER = '192.168.117.4'
+R_PORT = 11716
+R_HOST = ''
+sock_recv_data = socket(AF_INET, SOCK_STREAM)
+sock_recv_data.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+sock_recv_data.bind((R_HOST, R_PORT))
+
+#Socket to send data
+S_HOST = DEALER_SERVER
+S_PORT = 11717
+sock_send_data = socket(AF_INET, SOCK_STREAM)
+
+#Message Queue
+msg_q = Queue()
+
+#Thread to handle received data
+def handle_data():
+    data = ''
+    while True:
+        if not msg_q.empty():
+            data = msg_q.get()
+            req_type = data.partition(':')[0].partition('=')[2]
+            if req_type == 'check':
+                print 'Connection established'
+            elif req_type == 'init':
+                print req_type
+                temp = data.partition(':')[2]
+                paramlist = temp.split(';')
+                for param in paramlist:
+                    if param.partition('=')[0] == 'nop':
+                        poker_data.NO_OF_PLAYERS = int(param.partition('=')[2])
+                    elif param.partition('=')[0] == 'yourPos':
+                        poker_data.mypos = int(param.partition('=')[2])
+                    elif param.partition('=')[0] == 'sb':
+                        poker_data.small_blind = int(param.partition('=')[2])
+                    elif param.partition('=')[0] == 'players_money':
+                        temp = param.partition('=')[2]
+                        temp = temp.strip('[').strip(']').split(',')
+                        for i in range(len(temp)):
+                            poker_data.remaining_money[i] = int(temp[i])
+            elif req_type == 'cards':
+                print req_type
+                card1 = data.partition(':')[2].partition(',')[0]
+                card2 = data.partition(':')[2].partition(',')[2]
+                poker_data.hand_cards[0] = 'images/' + card1
+                poker_data.hand_cards[1] = 'images/' + card2
+            elif req_type == 'data':
+                print req_type
+                temp = data.partition(':')[2]
+                paramlist = temp.split(';')
+                for param in paramlist:
+                    if param.partition('=')[0] == 'live':
+                        for i in range(0, poker_data.NO_OF_PLAYERS):
+                            poker_data.ingame[i] = int(param.partition('=')[2])
+                    elif param.partition('=')[0] == 'current_player':
+                        if int(param.partition('=')[2]) == poker_data.mypos:
+                            print 'attempting to send data'
+                            thread.start_new_thread(send_data, ('100',))
+                    elif param.partition('=')[0] == 'NO_OF_POTS':
+                        pass
+                    elif param.partition('=')[0] == 'last_raised':
+                        pass
+                    elif param.partition('=')[0] == 'players_money':
+                        temp = param.partition('=')[2]
+                        temp = temp.strip('[').strip(']').split(',')
+                        for i in range(len(temp)):
+                            poker_data.remaining_money[i] = int(temp[i])
+                    elif param.partition('=')[0] == 'pot_investment':
+                        temp = param.partition('=')[2]
+                        temp = temp.strip('[').strip(']').split(',')
+                        for i in range(len(temp)):
+                            poker_data.money_in_pot[i] = int(temp[i])
+        else:
+            time.sleep(1)
+
+#Thread to send data
+def send_data(data):
+    try:
+        print 'sending.......'
+        sock_send_data.send(data)
+        print 'data sent ->' + data
+    except:
+        print 'Something wrong happened while sending data'
+
+
+
 # Thread to receive data
 def recv_data():
-    PORT = 11716
-    HOST = ''
-    s_recv_data = socket(AF_INET, SOCK_STREAM)
-    s_recv_data.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-    s_recv_data.bind((HOST, PORT))
     print 'waiting for conn in recv_data'
-    s_recv_data.listen(1)
-    conn_recv_data,addr = s_recv_data.accept()
+    sock_recv_data.listen(1)
+    conn_recv_data,addr = sock_recv_data.accept()
 
     while True:
         try:
             data = conn_recv_data.recv(4096)
             if data != '':
-                print data
-                req_type = data.partition(':')[0].partition('=')[2]
-                if req_type == 'cards':
-                    print req_type
-                    card1 = data.partition(':')[2].partition(',')[0]
-                    card2 = data.partition(':')[2].partition(',')[2]
-                    poker_data.hand_cards[0] = 'images/' + card1
-                    poker_data.hand_cards[1] = 'images/' + card2
-                if req_type == 'data':
-                    print req_type
-                    temp = data.partition(':')[2]
-                    paramlist = temp.split(';')
-                    for param in paramlist:
-                        if param.partition('=')[0] == 'nop':
-                            poker_data.NO_OF_PLAYERS = int(param.partition('=')[2])
-                        elif param.partition('=')[0] == 'yourPos':
-                            poker_data.mypos = int(param.partition('=')[2])
-                        elif param.partition('=')[0] == 'live':
-                            for i in range(0, poker_data.NO_OF_PLAYERS):
-                                poker_data.ingame[i] = int(param.partition('=')[2])
-                        elif param.partition('=')[0] == 'sb':
-                            poker_data.small_blind = int(param.partition('=')[2])
-                        elif param.partition('=')[0] == 'current_player':
-                            pass
-                        elif param.partition('=')[0] == 'NO_OF_POTS':
-                            pass
-                        elif param.partition('=')[0] == 'last_raised':
-                            pass
-                        elif param.partition('=')[0] == 'players_money':
-                            temp = param.partition('=')[2]
-                            temp = temp.strip('[').strip(']').split(',')
-                            for i in range(len(temp)):
-                                poker_data.remaining_money[i] = int(temp[i])
-                        elif param.partition('=')[0] == 'pot_investment':
-                            temp = param.partition('=')[2]
-                            temp = temp.strip('[').strip(']').split(',')
-                            for i in range(len(temp)):
-                                poker_data.money_in_pot[i] = int(temp[i])
-
-                        
-
+                msg_q.put(data)
+                print data        
         except:
             print 'connect error'
             sys.exit()
+
         
-# Start Thread
+# Start recv_data thread
 try:
     thread.start_new_thread(recv_data, ())
 except:
-    print'unable to start thread'
+    print'unable to start recv_data thread'
 
-HOST = DEALER_SERVER
-PORT = 11717
-s = socket(AF_INET, SOCK_STREAM)
+# Start handle_data thread
 try:
-    s.connect((HOST, PORT))
-    s.send('req')
+    thread.start_new_thread(handle_data, ())
+except:
+    print'unable to start handle_data thread'
 
+try:
+    sock_send_data.connect((S_HOST, S_PORT))
+    sock_send_data.send('req')
 except:
     print 'connect error'
 
