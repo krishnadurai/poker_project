@@ -8,6 +8,7 @@ import time
 import threading
 import pygbutton
 import platform
+from pgu import gui
 
 #Socket to receive data
 DEALER_SERVER = '192.168.117.4'
@@ -87,6 +88,7 @@ def handle_data():
 def send_data(data):
     try:
         print 'sending.......'
+        data = str(data)
         sock_send_data.send(data)
         print 'data sent ->' + data
     except:
@@ -122,13 +124,13 @@ try:
     thread.start_new_thread(handle_data, ())
 except:
     print'unable to start handle_data thread'
-
+'''
 try:
     sock_send_data.connect((S_HOST, S_PORT))
     sock_send_data.send('req')
 except:
     print 'connect error'
-
+'''
 
 class Message:
     mypos = 8
@@ -139,6 +141,7 @@ class Message:
     remaining_money = [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
     last_raised_amt = 0
     current_player = 0
+    bet_amount = 0
     player_cards1 = ["images/front", "images/front", "images/front",
                      "images/front", "images/front", "images/front",
                      "images/front"]
@@ -165,7 +168,41 @@ SCREEN_X = 795
 SCREEN_Y = 511
 bg = "images/back.jpg"
 
+
+
+#Slider class
+class bet_bar(gui.Table):
+    def __init__(self,**params):
+        self.value = range(100)
+        gui.Table.__init__(self,**params)
+        fg = (255,255,255)
+
+        self.tr()
+        self.td(gui.Label("Bet / Raise",color=fg),colspan=2)
+        
+        self.tr()
+        self.td(gui.Label("Amount: ",color=fg),align=1)
+        e = gui.HSlider(50,0,1000,size=10,width=500,height=16,name='amount')
+        e.connect(gui.CHANGE,self.adjust,(0,e))
+        self.td(e)
+    def adjust(self,value):
+        (num, slider) = value
+        self.value[num] = slider.value
+        poker_data.bet_amount = int(slider.value)
+        print poker_data.bet_amount
+
+form = gui.Form()
+
+app = gui.App()
+betBar = bet_bar()
+
+c = gui.Container(align=-1,valign=-1)
+c.add(betBar,50,460)
+
+
 pygame.init()
+app.init(c)
+
 screen = pygame.display.set_mode((SCREEN_X, SCREEN_Y), 0, 32)
 screen.fill((0, 0, 255))
 pygame.display.set_caption("Poker Project")
@@ -180,6 +217,7 @@ pygame.display.set_icon(icon)
 back = pygame.image.load(bg).convert()
 screen = pygame.display.get_surface()
 clock = pygame.time.Clock()
+
 
 while True:
     font = pygame.font.Font(None, 24)
@@ -209,19 +247,20 @@ while True:
             print 'Fold button clicked'
             poker_data.hand_cards[0] = 'images/front'
             poker_data.hand_cards[1] = 'images/front'
-            button_turn.visible = False
         elif 'click' in call_events:
             print 'CALL button clicked'
             if poker_data.current_player == poker_data.mypos:
                 print 'attempting to send data'
                 thread.start_new_thread(send_data, (poker_data.last_raised_amt,))
-            button_turn.visible = False
         elif 'click' in raise_events:
             print 'RAISE button clicked'
             if poker_data.current_player == poker_data.mypos:
                 print 'attempting to send data'
                 thread.start_new_thread(send_data, (poker_data.last_raised_amt+1,))
-            button_turn.visible = False
+        elif event.type is KEYDOWN and event.key == K_ESCAPE: 
+            pass
+        else:
+            app.event(event)
 
 
 
@@ -270,13 +309,20 @@ while True:
     rise = font.render("RAISE", 1, (255, 0, 0))
     screen.blit(check, (535, 465))
     '''
+    button_turn.visible = False
+    if poker_data.mypos == poker_data.current_player:
+        button_turn.visible = True
     button_call.draw(screen)
     button_raise.draw(screen)
     button_fold.draw(screen)
     button_turn.draw(screen)
-    if poker_data.mypos == poker_data.current_player:
-        button_turn.visible = True
     sb = 8 + poker_data.small_blind - poker_data.mypos
     sb %= 8
     screen.blit(small_blind_image, (pos[sb][0]- 30, pos[sb][1]))
+    bet_text = font.render('$ '+str(poker_data.bet_amount), 1, (255, 255, 255))
+    screen.blit(bet_text, (700, 480))
+    app.paint()
     pygame.display.update()
+
+
+
