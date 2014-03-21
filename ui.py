@@ -11,7 +11,8 @@ import platform
 from pgu import gui
 
 #Socket to receive data
-DEALER_SERVER = '192.168.117.2'
+#DEALER_SERVER = '192.168.117.2'
+DEALER_SERVER = '192.168.2.2'
 R_PORT = 11716
 R_HOST = ''
 sock_recv_data = socket(AF_INET, SOCK_STREAM)
@@ -31,63 +32,70 @@ def handle_data():
     data = ''
     while True:
         if not msg_q.empty():
-            data = msg_q.get()
-            req_type = data.partition(':')[0].partition('=')[2]
-            if req_type == 'check':
-                print 'Connection established'
-            elif req_type == 'init':
-                print req_type
-                temp = data.partition(':')[2]
-                paramlist = temp.split(';')
-                for param in paramlist:
-                    if param.partition('=')[0] == 'nop':
-                        poker_data.NO_OF_PLAYERS = int(param.partition('=')[2])
-                    elif param.partition('=')[0] == 'yourPos':
-                        poker_data.mypos = int(param.partition('=')[2])
-                    elif param.partition('=')[0] == 'sb':
-                        poker_data.small_blind = int(param.partition('=')[2])
-                    elif param.partition('=')[0] == 'players_money':
-                        temp = param.partition('=')[2]
-                        temp = temp.strip('[').strip(']').split(',')
-                        for i in range(len(temp)):
-                            poker_data.remaining_money[i] = int(temp[i])
-            elif req_type == 'cards':
-                print req_type
-                card1 = data.partition(':')[2].partition(',')[0]
-                card2 = data.partition(':')[2].partition(',')[2]
-                poker_data.hand_cards[0] = 'images/' + card1
-                poker_data.hand_cards[1] = 'images/' + card2
-            elif req_type == 'data':
-                print req_type
-                temp = data.partition(':')[2]
-                paramlist = temp.split(';')
-                for param in paramlist:
-                    if param.partition('=')[0] == 'live':
-                        temp = param.partition('=')[2]
-                        temp = temp.strip('[').strip(']').split(',')
-                        for i in range(0, poker_data.NO_OF_PLAYERS):
-                            poker_data.ingame[i] = int(temp[i])
-                    elif param.partition('=')[0] == 'current_player':
-                        poker_data.current_player = int(param.partition('=')[2])
-                    elif param.partition('=')[0] == 'NO_OF_POTS':
-                        pass
-                    elif param.partition('=')[0] == 'last_raised_amt':
-                        poker_data.last_raised_amt = int(param.partition('=')[2])
-                    elif param.partition('=')[0] == 'players_money':
-                        temp = param.partition('=')[2]
-                        temp = temp.strip('[').strip(']').split(',')
-                        for i in range(len(temp)):
-                            poker_data.remaining_money[i] = int(temp[i])
-                    elif param.partition('=')[0] == 'pot_investment':
-                        temp = param.partition('=')[2]
-                        temp = temp.strip('[').strip(']').split(',')
-                        for i in range(len(temp)):
-                            poker_data.money_in_pot[i] = int(temp[i])
-                    elif param.partition('=')[0] == 'last_raised_by':
-                        poker_data.last_raised_by = int(param.partition('=')[2])
-                    elif param.partition('=')[0] == 'small_blind_amt':
-                        poker_data.small_blind_amt = int(param.partition('=')[2])
-            poker_data.bet_amount = max(poker_data.last_raised_amt + poker_data.last_raised_by, poker_data.small_blind_amt*2)
+            q_data = msg_q.get()
+            for data in q_data.split('$'):
+                req_type = data.partition(':')[0].partition('=')[2]
+                if req_type == 'check':
+                    print 'Connection established'
+                elif req_type == 'init':
+                    print req_type
+                    temp = data.partition(':')[2]
+                    paramlist = temp.split(';')
+                    for param in paramlist:
+                        if param.partition('=')[0] == 'nop':
+                            poker_data.NO_OF_PLAYERS = int(param.partition('=')[2])
+                        elif param.partition('=')[0] == 'yourPos':
+                            poker_data.mypos = int(param.partition('=')[2])
+                        elif param.partition('=')[0] == 'sb':
+                            poker_data.small_blind = int(param.partition('=')[2])
+                        elif param.partition('=')[0] == 'players_money':
+                            temp = param.partition('=')[2]
+                            temp = temp.strip('[').strip(']').split(',')
+                            for i in range(len(temp)):
+                                poker_data.remaining_money[i] = int(temp[i])
+                elif req_type == 'cards':
+                    print req_type
+                    card1 = data.partition(':')[2].partition(',')[0]
+                    card2 = data.partition(':')[2].partition(',')[2]
+                    poker_data.hand_cards[0] = 'images/' + card1
+                    poker_data.hand_cards[1] = 'images/' + card2
+                elif req_type == 'data':
+                    print req_type
+                    temp = data.partition(':')[2]
+                    paramlist = temp.split(';')
+                    for param in paramlist:
+                        if param.partition('=')[0] == 'live':
+                            temp = param.partition('=')[2]
+                            temp = temp.strip('[').strip(']').split(',')
+                            for i in range(0, poker_data.NO_OF_PLAYERS):
+                                poker_data.ingame[i] = int(temp[i])
+                        elif param.partition('=')[0] == 'current_player':
+                            poker_data.current_player = int(param.partition('=')[2])
+                        elif param.partition('=')[0] == 'NO_OF_POTS':
+                            poker_data.no_of_pots = int(param.partition('=')[2])
+                        elif param.partition('=')[0] == 'last_raised_amt':
+                            poker_data.last_raised_amt = int(param.partition('=')[2])
+                        elif param.partition('=')[0] == 'players_money':
+                            temp = param.partition('=')[2]
+                            temp = temp.strip('[').strip(']').split(',')
+                            for i in range(len(temp)):
+                                poker_data.remaining_money[i] = int(temp[i])
+                        elif param.partition('=')[0] == 'pot_investment':
+                            temp = param.partition('=')[2]
+                            temp = temp.strip('[').strip(']').split(',')
+                            for i in range(len(temp)):
+                                poker_data.money_in_pot[i] = int(temp[i])
+                        elif param.partition('=')[0] == 'last_raised_by':
+                            poker_data.last_raised_by = int(param.partition('=')[2])
+                        elif param.partition('=')[0] == 'small_blind_amt':
+                            poker_data.small_blind_amt = int(param.partition('=')[2])
+                        elif param.partition('=')[0] == 'pot_money':
+                            temp = param.partition('=')[2]
+                            temp = temp.strip('[').strip(']').split(',')
+                            for i in range(poker_data.no_of_pots):
+                                poker_data.pot_money[i] = int(temp[i])
+
+                poker_data.bet_amount = max(poker_data.last_raised_amt + poker_data.last_raised_by, poker_data.small_blind_amt*2)
 
         else:
             time.sleep(1)
@@ -144,6 +152,8 @@ class Message:
     mypos = 0
     small_blind = 5
     small_blind_amt = 0
+    no_of_pots = 0
+    pot_money = [0] * 7
     NO_OF_PLAYERS = 0
     ingame = [0, 0, 0, 0, 0, 0, 0, 0]
     money_in_pot = [0, 0, 0, 0, 0, 0, 0, 0]
@@ -174,7 +184,8 @@ pot_pos = [[396, 290], [206, 290], [170, 213], [206, 131], [396, 131],
            [586, 131], [630, 213], [586, 290]]
 money_pos = [[396, 406], [206, 406], [30, 213], [206, 15], [396, 15],
              [586, 15], [765, 213], [586, 406]]
-SCREEN_X = 795
+#SCREEN_X = 795
+SCREEN_X = 950
 SCREEN_Y = 511
 bg = "images/back.jpg"
 
@@ -213,7 +224,7 @@ pygame.init()
 app.init(c)
 
 screen = pygame.display.set_mode((SCREEN_X, SCREEN_Y), 0, 32)
-screen.fill((0, 0, 255))
+screen.fill((28, 28, 30))
 pygame.display.set_caption("Poker Project")
 icon = pygame.image.load("images/icon.png").convert()
 button_fold = pygbutton.PygButton((50, 420, 100, 30), 'FOLD')
@@ -345,7 +356,10 @@ while True:
         screen.blit(bet_text, (700, 480))
         call_text = font.render('$ '+str(min(poker_data.last_raised_amt, poker_data.remaining_money[poker_data.mypos])), 1, (255, 255, 255))
         screen.blit(call_text, (450, 425))
-    app.paint()
+        app.paint()
+    for i in range(poker_data.no_of_pots):
+        pot_text = font.render('Pot ' + str(i) + ' =>$ '+str(poker_data.pot_money[i]), 1, (0, 255,0))
+        screen.blit(pot_text, (590, (i * 40) + 20))
     pygame.display.update()
 
 
