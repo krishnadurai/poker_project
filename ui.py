@@ -11,7 +11,7 @@ import platform
 from pgu import gui
 
 #Socket to receive data
-DEALER_SERVER = '192.168.117.9'
+DEALER_SERVER = '192.168.117.112'
 #DEALER_SERVER = '192.168.2.2'
 R_PORT = 11716
 R_HOST = ''
@@ -64,7 +64,20 @@ def handle_data():
                     temp = data.partition(':')[2]
                     paramlist = temp.split(';')
                     for param in paramlist:
-                        if param.partition('=')[0] == 'live':
+                        if req_type == 'flop_cards':
+                            temp = param.partition('=')[2]
+                            temp = temp.strip('[').strip(']').split(',')
+                            for i in range(len(temp)):
+                                poker_data.com_cards[i] = 'images/' + temp[i]
+                        if req_type == 'turn_cards':
+                            temp = param.partition('=')[2]
+                            temp = temp.strip('[').strip(']')
+                            poker_data.com_cards[3] = 'images/' + temp[0]
+                        if req_type == 'river_cards':
+                            temp = param.partition('=')[2]
+                            temp = temp.strip('[').strip(']')
+                            poker_data.com_cards[4] = 'images/' + temp[0]
+                        elif param.partition('=')[0] == 'live':
                             temp = param.partition('=')[2]
                             temp = temp.strip('[').strip(']').split(',')
                             for i in range(0, poker_data.NO_OF_PLAYERS):

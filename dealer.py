@@ -234,8 +234,9 @@ def main():
         
         del threads
         threads = []
+        round_cards = []
         # Rounds start now
-        print ' GAME STARTS NOW>>>>>>>>>'
+        print ' round  STARTS NOW>>>>>>>>>'
         for current_round in all_rounds:
             # ALL play
             side_pot = False
@@ -245,6 +246,17 @@ def main():
                 current_rnd_pot_amt = 0
             else:
                 current_rnd_pot_amt = pot_money[current_rnd_pot]
+                current_player = small_blind
+                if current_round[1] == 2:   #flop
+                    round_cards = cards[2*NO_OF_PLAYERS+1:2*NO_OF_PLAYERS+4]
+                    send_them_all('req=data:flop_cards=' + str(round_cards) + '$')
+                elif current_round[1] == 3:   #turn
+                    round_cards = cards[2*NO_OF_PLAYERS+5]
+                    send_them_all('req=data:turn_cards=' + str(round_cards) + '$')
+                elif current_round[1] == 4:   #river
+                    round_cards = cards[2*NO_OF_PLAYERS+7]
+                    send_them_all('req=data:river_cards=' + str(round_cards) + '$')
+
             somebody_raised = False
             p_list = get_player_list(current_round[1])
             print p_list
@@ -268,12 +280,14 @@ def main():
                     last_raised = current_player
                     if last_raised_by < int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) - last_raised_amt:
                         last_raised_by = int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) - last_raised_amt
+                    if int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) == players_money[current_player] + pot_investment[current_player]:
+                        live_players[current_player] = 2
                     last_raised_amt = int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) 
                     players_money[current_player] -= (last_raised_amt - pot_investment[current_player])
                     pot_money[no_of_pots - 1] += last_raised_amt - pot_investment[current_player]
                     pot_investment[current_player] = last_raised_amt
                     current_player = get_next_player(current_player)
-                    send_them_all('req=data:current_player=' + str(current_player) + ';last_raised_amt=' + str(last_raised_amt) + ';last_raised_by=' + str(last_raised_by) + ';players_money=' + str(players_money) + ';pot_investment=' + str(pot_investment) + ';pot_money=' + str(pot_money) + '$')
+                    send_them_all('req=data:current_player=' + str(current_player) + ';last_raised_amt=' + str(last_raised_amt) + ';last_raised_by=' + str(last_raised_by) + ';players_money=' + str(players_money) + ';pot_investment=' + str(pot_investment) + ';pot_money=' + str(pot_money) + ';live=' + str(live_players) +'$')
                     break
 
                 elif req_type == 'fold':
@@ -322,6 +336,8 @@ def main():
                         last_raised = current_player
                         if last_raised_by < int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) - last_raised_amt:
                             last_raised_by = int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) - last_raised_amt
+                        if int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) == players_money[current_player] + pot_investment[current_player]:
+                            live_players[current_player] = 2
                         last_raised_amt = int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) 
                         players_money[current_player] -= (last_raised_amt - pot_investment[current_player])
                         print '------IN Raise play (raiseTO) side_pot is : ' + str(side_pot)
@@ -332,7 +348,7 @@ def main():
                         else:
                             pot_money[no_of_pots - 1] += (last_raised_amt - pot_investment[current_player])
                             pot_investment[current_player] = last_raised_amt
-                            send_them_all('req=data:current_player=' + str(current_player) + ';last_raised_amt=' + str(last_raised_amt) + ';last_raised_by=' + str(last_raised_by) + ';players_money=' + str(players_money) + ';pot_investment=' + str(pot_investment) + ';pot_money=' + str(pot_money) + '$')
+                            send_them_all('req=data:current_player=' + str(current_player) + ';last_raised_amt=' + str(last_raised_amt) + ';last_raised_by=' + str(last_raised_by) + ';players_money=' + str(players_money) + ';pot_investment=' + str(pot_investment) + ';pot_money=' + str(pot_money) + ';live=' + str(live_players) + '$')
                     elif req_type == 'fold':
                         print str(current_player) + '  folded'
                         live_players[current_player] = 0
@@ -363,7 +379,7 @@ def main():
                     current_player = get_next_player(current_player)
                     # Round ends Here
                     if current_player == last_raised:
-                        sys.exit()
+                        break;
                     print '---------------END OF LOOP--------------------'
                     print 'current players is  => ',current_player 
                     print 'last_raised is  => ',last_raised
@@ -384,8 +400,10 @@ def main():
             print 'players_money is => ',players_money
             print 'pot_investment is => ',pot_investment
             print '----------------------------------------------'
+                
+        print 'round ' + str(current_round) + ' ended'
 
-        sys.exit()
+    sys.exit()
 
 def side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, current_rnd_pot_amt, current_rnd_pot):
     global current_player, live_players, NO_OF_PLAYERS
@@ -464,7 +482,7 @@ def side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, current
     print "pot players -> last",pot_players[-1]
     # print "updated live players",updated_live_players
     # How would they know if there were no papers? Send them all.
-    send_them_all('req=data:live=' + str(live_players) + ";NO_OF_POTS=" + str(no_of_pots) + ';pot_money=' + str(pot_money) + ';players_money=' + str(players_money) + ';pot_investment=' + str(pot_investment) + '$')
+    send_them_all('req=data:live=' + str(live_players) + ";NO_OF_POTS=" + str(no_of_pots) + ';pot_money=' + str(pot_money) + ';players_money=' + str(players_money) + ';pot_investment=' + str(pot_investment) + ';last_raised_amt=' + str(last_raised_amt) ';last_raised_by=' + str(last_raised_by) + '$')
     # return updated_live_players,no_of_pots
     return no_of_pots
 
