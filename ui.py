@@ -11,7 +11,7 @@ import platform
 from pgu import gui
 
 #Socket to receive data
-DEALER_SERVER = '192.168.117.112'
+DEALER_SERVER = '192.168.117.1'
 #DEALER_SERVER = '192.168.2.2'
 R_PORT = 11716
 R_HOST = ''
@@ -107,6 +107,8 @@ def handle_data():
                             temp = temp.strip('[').strip(']').split(',')
                             for i in range(poker_data.no_of_pots):
                                 poker_data.pot_money[i] = int(temp[i])
+                        elif param.partition('=')[0] == 'showdown_list':
+                            pass
 
                 amt_min = max(poker_data.last_raised_amt + poker_data.last_raised_by, poker_data.small_blind_amt*2)
                 amt_max = poker_data.remaining_money[poker_data.mypos]

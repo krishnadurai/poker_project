@@ -4,12 +4,12 @@ import sys
 import time
 from socket import *
 import random
-#import hand_evaluator
 import threading
 import thread 
+from pokereval import hand_evaluator
 
 # Variable Initialisation
-NO_OF_PLAYERS = 4
+NO_OF_PLAYERS = 3
 small_blind_amt = 1
 
 INITIAL_MONEY = 1000
@@ -55,8 +55,6 @@ last_raised_by = small_blind_amt * 2
 players_money = []
 for i in range(0, NO_OF_PLAYERS):
     players_money.append(INITIAL_MONEY/(i+1))
-    if i == 2:
-        players_money[2] = 1000
     players_money[i] -= pot_investment[i]
 
 
@@ -195,8 +193,7 @@ def main():
         for i in range(0, NO_OF_PLAYERS):
             live_players.append(1)
         pot_money.append(small_blind_amt * 3)
-        game_finished = False
-
+        
         i = 0
         threads = []
         # Sending details 
@@ -426,6 +423,12 @@ def main():
                 last_pot_players.append(0)
                 showdown_list.append(0)
         pot_players.append(last_pot_players)
+        # Determine winner
+        pot_winners = hand_evaluator.decide_winners(pot_players, cards, NO_OF_PLAYERS)
+        print 'pot_winners ', pot_winners
+        # Distribute pot money according to winner
+        distributePotMoneyToWinners(pot_money, pot_winners)
+        # send_them_all('req=data:showdown_list=' + str(showdown_list) + '$')
 
     sys.exit()
 
@@ -514,15 +517,15 @@ def removeFromPots(player,pot_players):
     for pot_livers in pot_players:
         pot_livers[player] = 0
 
-def mergeSidePotAndLivePlayers(side_pot_players):
-    global live_players
-    updated_live_players = []
-    for i in range(0,len(live_players)):
-        if live_players[i] == 2:
-            updated_live_players.append(2)
-        else:
-            updated_live_players.append(side_pot_players[i])
-    return updated_live_players
+def distributePotMoneyToWinners(pot_money, pot_winners):
+    for i in range(len(pot_money)):
+        for j in range(len(pot_winners[i])):
+            players_money[pot_winners[i][j]] += pot_money[i]/len(pot_winners[i])
+        for player in random.sample(pot_winners[i], pot_money[i]%len(pot_winners[i])):
+            players_money[player] += 1
+    send_them_all('req=data:players_money=' + str(players_money) + '$')
+
+
 
 if __name__  ==  '__main__':
     main()

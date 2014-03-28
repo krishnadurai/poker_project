@@ -413,6 +413,7 @@ def decide_winners(pot_players, cards, NO_OF_PLAYERS):
                 pot_winners[pot_id].append(pot_ranks[i][1])
         pot_id += 1
     print pot_winners
+    return pot_winners
 
 
 '''
