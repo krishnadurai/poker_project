@@ -9,7 +9,7 @@ import threading
 import thread 
 
 # Variable Initialisation
-NO_OF_PLAYERS = 5
+NO_OF_PLAYERS = 4
 small_blind_amt = 1
 
 INITIAL_MONEY = 1000
@@ -114,7 +114,8 @@ def send_them_all(data):
 def get_no_of_live_players():
     total = 0
     for i in range(0,len(live_players)):
-        total = total + live_players[i]
+        if  live_players[i] == 1:
+            total = total + live_players[i]
     return total
 # Get Next player
 
@@ -145,7 +146,7 @@ send_sock=[]
 recv_conn = []
 def main():
     global current_player, live_players
-    global last_raised_amt, last_raised_by
+    global last_raised_amt, last_raised_by, last_raised
     s = socket(AF_INET, SOCK_STREAM)
     s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
     R_HOST = ''
@@ -190,6 +191,9 @@ def main():
         # pot_players = [[1,1,1,1,1,1,1,1]]
         pot_players = []
         pot_money = []
+        live_players = []
+        for i in range(0, NO_OF_PLAYERS):
+            live_players.append(1)
         pot_money.append(small_blind_amt * 3)
 
         i = 0
@@ -238,6 +242,7 @@ def main():
         # Rounds start now
         print ' round  STARTS NOW>>>>>>>>>'
         for current_round in all_rounds:
+            print 'round ' + current_round[0] + ' started '
             # ALL play
             side_pot = False
             current_rnd_pot = no_of_pots - 1
@@ -377,21 +382,25 @@ def main():
                             no_of_pots = side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, current_rnd_pot_amt, current_rnd_pot)
                             
                     current_player = get_next_player(current_player)
-                    # Round ends Here
-                    if current_player == last_raised:
-                        break;
+                   
                     print '---------------END OF LOOP--------------------'
                     print 'current players is  => ',current_player 
                     print 'last_raised is  => ',last_raised
                     print 'players_money is => ',players_money
                     print 'pot_investment is => ',pot_investment
                     print '----------------------------------------------'
-
+                     # Round ends Here
+                    if current_player == last_raised:
+                        break
                     send_them_all('req=data:current_player=' + str(current_player) + '$')
 
             # Reinit for next round
             for i in range(0, NO_OF_PLAYERS):
                 pot_investment[i] = 0
+            last_raised_amt = 0
+            last_raised_by = small_blind_amt * 2
+            
+            send_them_all('req=data:pot_investment=' + str(pot_investment) + ';last_raised_amt=' + str(last_raised_amt) + ';last_raised_by=' + str(last_raised_by) + '$')
             # if side_pot:
                 # live_players = updated_live_players #Check for 2's and merge properly
             print '---------------End of round--------------------'
@@ -482,7 +491,7 @@ def side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, current
     print "pot players -> last",pot_players[-1]
     # print "updated live players",updated_live_players
     # How would they know if there were no papers? Send them all.
-    send_them_all('req=data:live=' + str(live_players) + ";NO_OF_POTS=" + str(no_of_pots) + ';pot_money=' + str(pot_money) + ';players_money=' + str(players_money) + ';pot_investment=' + str(pot_investment) + ';last_raised_amt=' + str(last_raised_amt) ';last_raised_by=' + str(last_raised_by) + '$')
+    send_them_all('req=data:live=' + str(live_players) + ";NO_OF_POTS=" + str(no_of_pots) + ';pot_money=' + str(pot_money) + ';players_money=' + str(players_money) + ';pot_investment=' + str(pot_investment) + ';last_raised_amt=' + str(last_raised_amt) + ';last_raised_by=' + str(last_raised_by) + '$')
     # return updated_live_players,no_of_pots
     return no_of_pots
 

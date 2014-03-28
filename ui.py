@@ -64,19 +64,19 @@ def handle_data():
                     temp = data.partition(':')[2]
                     paramlist = temp.split(';')
                     for param in paramlist:
-                        if req_type == 'flop_cards':
+                        if param.partition('=')[0] == 'flop_cards':
                             temp = param.partition('=')[2]
                             temp = temp.strip('[').strip(']').split(',')
+                            #print 'comm cards are ' + temp
                             for i in range(len(temp)):
-                                poker_data.com_cards[i] = 'images/' + temp[i]
-                        if req_type == 'turn_cards':
+                                poker_data.com_cards[i] = 'images/' + temp[i].split("'")[1]
+                            #print 'after ' + poker_data.com_cards
+                        elif param.partition('=')[0] == 'turn_cards':
                             temp = param.partition('=')[2]
-                            temp = temp.strip('[').strip(']')
-                            poker_data.com_cards[3] = 'images/' + temp[0]
-                        if req_type == 'river_cards':
+                            poker_data.com_cards[3] = 'images/' + temp
+                        elif param.partition('=')[0] == 'river_cards':
                             temp = param.partition('=')[2]
-                            temp = temp.strip('[').strip(']')
-                            poker_data.com_cards[4] = 'images/' + temp[0]
+                            poker_data.com_cards[4] = 'images/' + temp
                         elif param.partition('=')[0] == 'live':
                             temp = param.partition('=')[2]
                             temp = temp.strip('[').strip(']').split(',')
