@@ -195,6 +195,7 @@ def main():
         for i in range(0, NO_OF_PLAYERS):
             live_players.append(1)
         pot_money.append(small_blind_amt * 3)
+        game_finished = False
 
         i = 0
         threads = []
@@ -411,6 +412,20 @@ def main():
             print '----------------------------------------------'
                 
         print 'round ' + str(current_round) + ' ended'
+        # Handle Winner and Pot Players for last pot
+        last_pot_players = []
+        showdown_list = []
+        for player in live_players:
+            if player == 1:
+                last_pot_players.append(1)
+                showdown_list.append(1)
+            elif player == 2:
+                last_pot_players.append(0)
+                showdown_list.append(1)
+            else:
+                last_pot_players.append(0)
+                showdown_list.append(0)
+        pot_players.append(last_pot_players)
 
     sys.exit()
 
