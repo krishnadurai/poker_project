@@ -186,12 +186,12 @@ def main():
     while(True):
         no_of_pots= 1
         # Will be chaged when pot life ends
-        # pot_players = [[1,1,1,1,1,1,1,1]]
         pot_players = []
         pot_money = []
         live_players = []
         for i in range(0, NO_OF_PLAYERS):
             live_players.append(1)
+        pot_players.append(live_players)
         pot_money.append(small_blind_amt * 3)
         
         i = 0
@@ -244,7 +244,6 @@ def main():
             # ALL play
             side_pot = False
             current_rnd_pot = no_of_pots - 1
-            # updated_live_players = []
             if current_round[1] == 1:
                 current_rnd_pot_amt = 0
             else:
@@ -307,6 +306,8 @@ def main():
                             players_money[current_player] -= (last_raised_amt - pot_investment[current_player])
                             pot_money[no_of_pots - 1] += last_raised_amt - pot_investment[current_player]
                             pot_investment[current_player] = last_raised_amt
+                            if players_money[current_player] == 0:
+                                live_players[current_player] = 2
                             send_them_all('req=data:players_money='+str(players_money) + ';pot_investment=' + str(pot_investment) + ';pot_money=' + str(pot_money) + '$')
                         else:
                             print 'player ',current_player,' has ',players_money[current_player],' money, req is ',last_raised_amt
@@ -346,7 +347,6 @@ def main():
                         print '------IN Raise play (raiseTO) side_pot is : ' + str(side_pot)
                         if side_pot:
                             pot_investment[current_player] = last_raised_amt
-                            # updated_live_player,no_of_pot = side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, current_rnd_pot_amt, current_rnd_pot)
                             no_of_pots = side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, current_rnd_pot_amt, current_rnd_pot)
                         else:
                             pot_money[no_of_pots - 1] += (last_raised_amt - pot_investment[current_player])
@@ -362,6 +362,9 @@ def main():
                         if (last_raised_amt == int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2])):
                             if players_money[current_player] + pot_investment[current_player] >= last_raised_amt:
                                 players_money[current_player] -= (last_raised_amt - pot_investment[current_player])
+                                if players_money[current_player] == 0:
+                                    live_players[current_player] == 2
+
                                 if side_pot:
                                     pot_investment[current_player] = last_raised_amt
                                     no_of_pots = side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, current_rnd_pot_amt, current_rnd_pot)
@@ -375,7 +378,6 @@ def main():
                             side_pot = True
                             players_money[current_player] = 0
                             pot_investment[current_player] = int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2])
-                            # updated_live_player,no_of_pot = side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, current_rnd_pot_amt, current_rnd_pot)
                             live_players[current_player] = 2
                             no_of_pots = side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, current_rnd_pot_amt, current_rnd_pot)
                             
@@ -399,8 +401,7 @@ def main():
             last_raised_by = small_blind_amt * 2
             
             send_them_all('req=data:pot_investment=' + str(pot_investment) + ';last_raised_amt=' + str(last_raised_amt) + ';last_raised_by=' + str(last_raised_by) + '$')
-            # if side_pot:
-                # live_players = updated_live_players #Check for 2's and merge properly
+            
             print '---------------End of round--------------------'
             print 'current players is  => ',current_player 
             print 'last_raised is  => ',last_raised
@@ -409,26 +410,21 @@ def main():
             print '----------------------------------------------'
                 
         print 'round ' + str(current_round) + ' ended'
-        # Handle Winner and Pot Players for last pot
-        last_pot_players = []
+        # Make showdown list. 
         showdown_list = []
         for player in live_players:
             if player == 1:
-                last_pot_players.append(1)
                 showdown_list.append(1)
             elif player == 2:
-                last_pot_players.append(0)
                 showdown_list.append(1)
             else:
-                last_pot_players.append(0)
                 showdown_list.append(0)
-        pot_players.append(last_pot_players)
         # Determine winner
         pot_winners = hand_evaluator.decide_winners(pot_players, cards, NO_OF_PLAYERS)
         print 'pot_winners ', pot_winners
         # Distribute pot money according to winner
         distributePotMoneyToWinners(pot_money, pot_winners)
-        # send_them_all('req=data:showdown_list=' + str(showdown_list) + '$')
+        send_them_all('req=data:showdown_list=' + str(showdown_list) + '$')
 
     sys.exit()
 
@@ -461,6 +457,7 @@ def side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, current
         i -= 1
         no_of_pots -= 1
     pot_money[-1] = current_rnd_pot_amt
+    pot_players.pop()
 
     # Leading life is impossible without this. This is the answer to life, universe and everything. 42. Ok, setting pot values.
     pot_players_tracker = [0] * NO_OF_PLAYERS
@@ -503,14 +500,11 @@ def side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, current
             prev_min_inv_amt = min_investor[0]
         pot_players_tracker[min_investor[1]] = 0
     print 'pot_players_tracker', pot_players_tracker
-
-    # updated_live_players = mergeSidePotAndLivePlayers(pot_players.pop())
-    pot_players.pop()
     print "pot players -> last",pot_players[-1]
-    # print "updated live players",updated_live_players
+    
     # How would they know if there were no papers? Send them all.
     send_them_all('req=data:live=' + str(live_players) + ";NO_OF_POTS=" + str(no_of_pots) + ';pot_money=' + str(pot_money) + ';players_money=' + str(players_money) + ';pot_investment=' + str(pot_investment) + ';last_raised_amt=' + str(last_raised_amt) + ';last_raised_by=' + str(last_raised_by) + '$')
-    # return updated_live_players,no_of_pots
+    
     return no_of_pots
 
 def removeFromPots(player,pot_players):
