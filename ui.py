@@ -37,6 +37,10 @@ def handle_data():
                 req_type = data.partition(':')[0].partition('=')[2]
                 if req_type == 'check':
                     print 'Connection established'
+                elif req_type == 'reset':
+                    poker_data.hand_cards = ['images/front', 'images/front']
+                    for i in range(5):
+                        poker_data.com_cards[i] = 'images/front'
                 elif req_type == 'init':
                     print req_type
                     temp = data.partition(':')[2]

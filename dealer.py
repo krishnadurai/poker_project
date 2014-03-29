@@ -5,7 +5,7 @@ import time
 from socket import *
 import random
 import threading
-import thread 
+import thread
 from pokereval import hand_evaluator
 
 # Variable Initialisation
@@ -193,7 +193,7 @@ def main():
         for i in range(0, NO_OF_PLAYERS):
             live_players.append(1)
         pot_money.append(small_blind_amt * 3)
-        
+        send_them_all('req=reset:$') 
         i = 0
         threads = []
         # Sending details 
@@ -263,9 +263,10 @@ def main():
             somebody_raised = False
             p_list = get_player_list(current_round[1])
             print p_list
+            #ALL play
             for player in p_list:
                 if get_no_of_live_players() <= 1:
-                    print 'Only one Player le/ft'
+                    print 'Only one Player left'
                     break
 
                 current_player = player
@@ -285,6 +286,7 @@ def main():
                         last_raised_by = int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) - last_raised_amt
                     if int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) == players_money[current_player] + pot_investment[current_player]:
                         live_players[current_player] = 2
+#---Marked for confirmation
                     last_raised_amt = int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) 
                     players_money[current_player] -= (last_raised_amt - pot_investment[current_player])
                     pot_money[no_of_pots - 1] += last_raised_amt - pot_investment[current_player]
@@ -302,6 +304,8 @@ def main():
 
                 elif req_type == 'call':
                     print str(current_player) + '  called'
+
+                    # Everythig is Good
                     if (last_raised_amt == int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2])):
                         if players_money[current_player] >= (last_raised_amt - players_money[current_player]):
                             players_money[current_player] -= (last_raised_amt - pot_investment[current_player])
@@ -310,6 +314,8 @@ def main():
                             send_them_all('req=data:players_money='+str(players_money) + ';pot_investment=' + str(pot_investment) + ';pot_money=' + str(pot_money) + '$')
                         else:
                             print 'player ',current_player,' has ',players_money[current_player],' money, req is ',last_raised_amt
+                    
+                    # Side pot Required
                     else:
                         side_pot = True
                         players_money[current_player] = 0
@@ -337,10 +343,14 @@ def main():
                     req_type = thread_recvd_data.curr_data_recvd.partition(':')[0].partition('=')[2]
                     if req_type == 'raiseTO':
                         last_raised = current_player
+                        #Everything is good
                         if last_raised_by < int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) - last_raised_amt:
                             last_raised_by = int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) - last_raised_amt
+
+                        # All in case
                         if int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) == players_money[current_player] + pot_investment[current_player]:
                             live_players[current_player] = 2
+
                         last_raised_amt = int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) 
                         players_money[current_player] -= (last_raised_amt - pot_investment[current_player])
                         print '------IN Raise play (raiseTO) side_pot is : ' + str(side_pot)
@@ -352,11 +362,13 @@ def main():
                             pot_money[no_of_pots - 1] += (last_raised_amt - pot_investment[current_player])
                             pot_investment[current_player] = last_raised_amt
                             send_them_all('req=data:current_player=' + str(current_player) + ';last_raised_amt=' + str(last_raised_amt) + ';last_raised_by=' + str(last_raised_by) + ';players_money=' + str(players_money) + ';pot_investment=' + str(pot_investment) + ';pot_money=' + str(pot_money) + ';live=' + str(live_players) + '$')
+
                     elif req_type == 'fold':
                         print str(current_player) + '  folded'
                         live_players[current_player] = 0
                         removeFromPots(current_player, pot_players)
                         send_them_all('req=data:live=' + str(live_players) + '$')
+
                     elif req_type == 'call':
                         print str(current_player) + '  called'
                         if (last_raised_amt == int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2])):
