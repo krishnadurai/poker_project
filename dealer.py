@@ -190,10 +190,11 @@ def main():
         pot_money = []
         live_players = []
         for i in range(0, NO_OF_PLAYERS):
-            live_players.append(1)
+            if pot_investment[i] > 0:
+                live_players.append(1)
         pot_players.append(live_players)
         pot_money.append(small_blind_amt * 3)
-        send_them_all('req=reset:$') 
+        send_them_all('req=reset$') 
         i = 0
         threads = []
         # Sending details 
@@ -436,7 +437,8 @@ def main():
         print 'pot_winners ', pot_winners
         # Distribute pot money according to winner
         distributePotMoneyToWinners(pot_money, pot_winners)
-        send_them_all('req=data:showdown_list=' + str(showdown_list) + '$')
+        #send_them_all('req=data:showdown_list=' + str(showdown_list) + ';cards=' + cards + '$')
+        print 'req=data:showdown_list=' + str(showdown_list) + ';cards=' + cards + '$'
 
     sys.exit()
 
