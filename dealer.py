@@ -181,6 +181,9 @@ def main():
         data = 'req=check$'
         send_sock[i].send(data)
         i += 1
+    pot_money = []
+    pot_money.append(pot_investment[small_blind] + pot_investment[big_blind])
+    side_pot = False
 
     # Game Starts now
     while(True):
@@ -196,13 +199,11 @@ def main():
         no_of_pots= 1
         # Will be chaged when pot life ends
         pot_players = []
-        pot_money = []
         #live_players = []
         pot_players.append(live_players)
         last_raised_amt = small_blind_amt * 2
         last_raised_by = small_blind_amt * 2
         # Trying to fix a bug
-        pot_money.append(pot_investment[small_blind] + pot_investment[big_blind])
         send_them_all('req=reset$') 
         i = 0
         threads = []
@@ -253,11 +254,11 @@ def main():
         for current_round in all_rounds:
             print 'round ' + current_round[0] + ' started '
             # ALL play
-            side_pot = False
             current_rnd_pot = no_of_pots - 1
             if current_round[1] == 1:
                 current_rnd_pot_amt = 0
             else:
+                side_pot = False
                 current_rnd_pot_amt = pot_money[current_rnd_pot]
                 current_player = small_blind
                 if current_round[1] == 2:   #flop
@@ -299,8 +300,14 @@ def main():
 #---Marked for confirmation
                     last_raised_amt = int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) 
                     players_money[current_player] -= (last_raised_amt - pot_investment[current_player])
-                    pot_money[no_of_pots - 1] += last_raised_amt - pot_investment[current_player]
-                    pot_investment[current_player] = last_raised_amt
+                    if side_pot:
+                        pot_investment[current_player] = last_raised_amt
+                        no_of_pots = side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, current_rnd_pot_amt, current_rnd_pot)
+                    else:
+                        pot_money[no_of_pots - 1] += (last_raised_amt - pot_investment[current_player])
+                        pot_investment[current_player] = last_raised_amt
+                        send_them_all('req=data:current_player=' + str(current_player) + ';last_raised_amt=' + str(last_raised_amt) + ';last_raised_by=' + str(last_raised_by) + ';players_money=' + str(players_money) + ';pot_investment=' + str(pot_investment) + ';pot_money=' + str(pot_money) + ';live=' + str(live_players) + '$')
+
                     current_player = get_next_player(current_player)
                     send_them_all('req=data:current_player=' + str(current_player) + ';last_raised_amt=' + str(last_raised_amt) + ';last_raised_by=' + str(last_raised_by) + ';players_money=' + str(players_money) + ';pot_investment=' + str(pot_investment) + ';pot_money=' + str(pot_money) + ';live=' + str(live_players) +'$')
                     break
@@ -317,7 +324,7 @@ def main():
                 elif req_type == 'call':
                     print str(current_player) + '  called'
 
-                    # Everythig is Good
+                    # Everything is Good
                     if (last_raised_amt == int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2])):
                         if players_money[current_player] >= (last_raised_amt - players_money[current_player]):
                             players_money[current_player] -= (last_raised_amt - pot_investment[current_player])
@@ -325,6 +332,13 @@ def main():
                             pot_investment[current_player] = last_raised_amt
                             if players_money[current_player] == 0:
                                 live_players[current_player] = 2
+                            if side_pot:
+                                pot_investment[current_player] = last_raised_amt
+                                no_of_pots = side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, current_rnd_pot_amt, current_rnd_pot)
+                            else:
+                                pot_money[no_of_pots - 1] += (last_raised_amt - pot_investment[current_player])
+                                pot_investment[current_player] = last_raised_amt
+                                send_them_all('req=data:players_money='+str(players_money) + ';pot_investment=' + str(pot_investment) + ';pot_money=' + str(pot_money) + '$')
                             send_them_all('req=data:players_money='+str(players_money) + ';pot_investment=' + str(pot_investment) + ';pot_money=' + str(pot_money) + '$')
                         else:
                             print 'player ',current_player,' has ',players_money[current_player],' money, req is ',last_raised_amt
@@ -452,6 +466,7 @@ def main():
         distributePotMoneyToWinners(pot_money, pot_winners)
 
         # Reinit  for next game
+        side_pot = False
         # Players who have non-zero money will play
         for i in range(0, NO_OF_PLAYERS):
             if players_money[i] > 0:
@@ -465,18 +480,27 @@ def main():
         # Check if small blind has enough amt to play and handle the situation accordingly
         if players_money[small_blind] < small_blind_amt:
             pot_investment[small_blind] = players_money[small_blind]
+            side_pot = True
             live_players[small_blind] = 2
         else:
             pot_investment[small_blind] += small_blind_amt
         players_money[small_blind] -= pot_investment[small_blind]
 
+
         # Check if big blind has enough amt to play and handle accordingly
         if players_money[big_blind] < (small_blind_amt * 2):
             pot_investment[big_blind] = players_money[big_blind]
+            side_pot = True
             live_players[big_blind] = 2
+            no_of_pots = side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, 0, 0)
         else:
             pot_investment[big_blind] += (small_blind_amt * 2)
         players_money[big_blind] -= pot_investment[big_blind]
+
+        pot_money = []
+        pot_money.append(pot_investment[small_blind] + pot_investment[big_blind])
+
+
         send_them_all('req=data:pot_investment=' + str(pot_investment) + ';small_blind=' + str(small_blind) +';players_money=' + str(players_money) + '$')
         #send_them_all('req=data:showdown_list=' + str(showdown_list) + ';cards=' + cards + '$')
         print 'req=data:showdown_list=' + str(showdown_list) + ';cards=' + str(cards) + '$'
