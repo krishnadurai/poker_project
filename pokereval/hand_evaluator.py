@@ -395,15 +395,16 @@ def decide_winners(pot_players, cards, NO_OF_PLAYERS):
     player_ranks = []
     i = 0
     while i < len(pot_players[0]):
-        if pot_players[0][i] == 1:
-            player_ranks.append([h.evaluate_hand(player_cards[i], board), i])
+        #if pot_players[0][i] == 1:
+        player_ranks.append([h.evaluate_hand(player_cards[i], board), i])
         i += 1
     print player_ranks
+    print pot_players
     pot_id = 0
     for p in pot_players:
         pot_ranks = []
         for i in range(len(p)):
-            if p[i] == 1:
+            if p[i] == 1 or p[i] == 2:
                 pot_ranks.append(player_ranks[i])
         pot_ranks.sort()
         # First guy is definitely a winner

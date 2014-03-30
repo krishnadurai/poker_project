@@ -11,7 +11,7 @@ import platform
 from pgu import gui
 
 #Socket to receive data
-DEALER_SERVER = '192.168.117.1'
+DEALER_SERVER = '192.168.117.112'
 #DEALER_SERVER = '192.168.2.2'
 R_PORT = 11716
 R_HOST = ''

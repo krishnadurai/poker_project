@@ -9,7 +9,7 @@ import thread
 from pokereval import hand_evaluator
 
 # Variable Initialisation
-NO_OF_PLAYERS = 3
+NO_OF_PLAYERS = 4
 small_blind_amt = 1
 
 INITIAL_MONEY = 1000
@@ -54,7 +54,7 @@ last_raised_by = small_blind_amt * 2
 # Money in players hand
 players_money = []
 for i in range(0, NO_OF_PLAYERS):
-    players_money.append(INITIAL_MONEY/(i+1))
+    players_money.append(INITIAL_MONEY)
     players_money[i] -= pot_investment[i]
 
 
@@ -112,7 +112,7 @@ def send_them_all(data):
 def get_no_of_live_players():
     total = 0
     for i in range(0,len(live_players)):
-        if  live_players[i] == 1:
+        if  live_players[i] == 1 or live_players[i] == 2:
             total = total + live_players[i]
     return total
 # Get Next player
@@ -143,7 +143,7 @@ def get_player_list(round_num):
 send_sock=[]
 recv_conn = []
 def main():
-    global current_player, live_players
+    global current_player, live_players, small_blind, small_blind_amt, big_blind
     global last_raised_amt, last_raised_by, last_raised
     s = socket(AF_INET, SOCK_STREAM)
     s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
@@ -184,16 +184,25 @@ def main():
 
     # Game Starts now
     while(True):
+        # Get number of players with no money
+        no_of_zero_money_players = 0
+        for i in range(NO_OF_PLAYERS):
+            if players_money[i] <= 0:
+                no_of_zero_money_players += 1
+        # NO players to play with
+        if (NO_OF_PLAYERS - no_of_zero_money_players) <= 1:
+            break
+
         no_of_pots= 1
         # Will be chaged when pot life ends
         pot_players = []
         pot_money = []
-        live_players = []
-        for i in range(0, NO_OF_PLAYERS):
-            if pot_investment[i] > 0:
-                live_players.append(1)
+        #live_players = []
         pot_players.append(live_players)
-        pot_money.append(small_blind_amt * 3)
+        last_raised_amt = small_blind_amt * 2
+        last_raised_by = small_blind_amt * 2
+        # Trying to fix a bug
+        pot_money.append(pot_investment[small_blind] + pot_investment[big_blind])
         send_them_all('req=reset$') 
         i = 0
         threads = []
@@ -214,8 +223,9 @@ def main():
         cards = random.sample(DECK, 2 * NO_OF_PLAYERS + 8)
         while(i < NO_OF_PLAYERS):
             data = 'req=cards:' + cards[i * 2] + "," + cards[i * 2 + 1] + '$'
-            threads.append(threading.Thread(target = send_data, args = (data,i,)))
-            threads[i].start()
+            if live_players[i] == 1 or live_players[i] ==2:
+                threads.append(threading.Thread(target = send_data, args = (data,i,)))
+                threads[-1].start()
             i += 1
         for t in threads:
             t.join()
@@ -300,6 +310,8 @@ def main():
                     live_players[current_player] = 0
                     # Kick out of all pots code.
                     removeFromPots(current_player, pot_players)
+                    print 'player ' + str(current_player) + ' removed '
+                    print pot_players
                     send_them_all('req=data:live=' + str(live_players) + '$')
 
                 elif req_type == 'call':
@@ -368,6 +380,8 @@ def main():
                         print str(current_player) + '  folded'
                         live_players[current_player] = 0
                         removeFromPots(current_player, pot_players)
+                        print 'player ' + str(current_player) + ' removed '
+                        print pot_players
                         send_them_all('req=data:live=' + str(live_players) + '$')
 
                     elif req_type == 'call':
@@ -412,15 +426,14 @@ def main():
                 pot_investment[i] = 0
             last_raised_amt = 0
             last_raised_by = small_blind_amt * 2
+            send_them_all('req=data:pot_investment=' + str(pot_investment) + ';small_blind=' + str(small_blind) +';players_money=' + str(players_money) + ';last_raised_amt=' + str(last_raised_amt) + ';last_raised_by=' + str(last_raised_by) + '$')
             
-            send_them_all('req=data:pot_investment=' + str(pot_investment) + ';last_raised_amt=' + str(last_raised_amt) + ';last_raised_by=' + str(last_raised_by) + '$')
-            
-            print '---------------End of round--------------------'
+            print '---------------End of round------------------------------------------------'
             print 'current players is  => ',current_player 
             print 'last_raised is  => ',last_raised
             print 'players_money is => ',players_money
             print 'pot_investment is => ',pot_investment
-            print '----------------------------------------------'
+            print '---------------------------------------------------------------------------'
                 
         print 'round ' + str(current_round) + ' ended'
         # Make showdown list. 
@@ -437,9 +450,44 @@ def main():
         print 'pot_winners ', pot_winners
         # Distribute pot money according to winner
         distributePotMoneyToWinners(pot_money, pot_winners)
-        #send_them_all('req=data:showdown_list=' + str(showdown_list) + ';cards=' + cards + '$')
-        print 'req=data:showdown_list=' + str(showdown_list) + ';cards=' + cards + '$'
 
+        # Reinit  for next game
+        # Players who have non-zero money will play
+        for i in range(0, NO_OF_PLAYERS):
+            if players_money[i] > 0:
+                live_players[i]= 1
+            else:
+                live_players[i]= 0
+        # Get new small blind
+        small_blind = get_next_player(small_blind)
+        big_blind = get_next_player(small_blind)
+
+        # Check if small blind has enough amt to play and handle the situation accordingly
+        if players_money[small_blind] < small_blind_amt:
+            pot_investment[small_blind] = players_money[small_blind]
+            live_players[small_blind] = 2
+        else:
+            pot_investment[small_blind] += small_blind_amt
+        players_money[small_blind] -= pot_investment[small_blind]
+
+        # Check if big blind has enough amt to play and handle accordingly
+        if players_money[big_blind] < (small_blind_amt * 2):
+            pot_investment[big_blind] = players_money[big_blind]
+            live_players[big_blind] = 2
+        else:
+            pot_investment[big_blind] += (small_blind_amt * 2)
+        players_money[big_blind] -= pot_investment[big_blind]
+        send_them_all('req=data:pot_investment=' + str(pot_investment) + ';small_blind=' + str(small_blind) +';players_money=' + str(players_money) + '$')
+        #send_them_all('req=data:showdown_list=' + str(showdown_list) + ';cards=' + cards + '$')
+        print 'req=data:showdown_list=' + str(showdown_list) + ';cards=' + str(cards) + '$'
+
+        # Print them all 
+        print '-----------------------------------------------------------------------------------------------------'
+        print '\tpot_investment : ' + str( pot_investment)
+        print '\tplayers_money : ' + str(players_money)
+        print '\tpot_players : ' + str(pot_players)
+        print '\tlive_players : ' + str(live_players)
+        print '------------------------------------------------------------------------------------------------------'
     sys.exit()
 
 def side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, current_rnd_pot_amt, current_rnd_pot):
