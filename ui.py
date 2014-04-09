@@ -295,17 +295,20 @@ while True:
             poker_data.hand_cards[0] = 'images/front'
             poker_data.hand_cards[1] = 'images/front'
             thread.start_new_thread(send_data, ('req=fold:',))
+            break
         elif 'click' in call_events:
             print 'CALL button clicked'
             if poker_data.current_player == poker_data.mypos:
                 print 'attempting to send data'
                 thread.start_new_thread(send_data, ('req=call:amt='+str(min(poker_data.last_raised_amt, (poker_data.remaining_money[poker_data.mypos] + poker_data.money_in_pot[poker_data.mypos]))),))
+                break
         elif 'click' in raise_events:
             print 'RAISE button clicked'
             if poker_data.current_player == poker_data.mypos:
                 print 'attempting to send data'
                 slider_value = str(poker_data.bet_amount)
                 thread.start_new_thread(send_data, ('req=raiseTO:amt='+str(poker_data.bet_amount),))
+                break
         elif event.type is KEYDOWN and event.key == K_ESCAPE:
             pass
         else:

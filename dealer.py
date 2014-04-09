@@ -112,7 +112,8 @@ def send_them_all(data):
 def get_no_of_live_players():
     total = 0
     for i in range(0,len(live_players)):
-        if  live_players[i] == 1 or live_players[i] == 2:
+        #if  live_players[i] == 1 or live_players[i] == 2: Changed By durai in classroom
+        if live_players[i] == 1:
             total = total + live_players[i]
     return total
 # Get Next player
