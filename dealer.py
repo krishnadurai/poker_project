@@ -9,7 +9,7 @@ import thread
 from pokereval import hand_evaluator
 
 # Variable Initialisation
-NO_OF_PLAYERS = 2
+NO_OF_PLAYERS = int(sys.argv[1])
 small_blind_amt = 1
 
 INITIAL_MONEY = 1000
