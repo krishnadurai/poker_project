@@ -9,7 +9,7 @@ import thread
 from pokereval import hand_evaluator
 
 # Variable Initialisation
-NO_OF_PLAYERS = 4
+NO_OF_PLAYERS = 2
 small_blind_amt = 1
 
 INITIAL_MONEY = 1000
@@ -143,6 +143,7 @@ def get_player_list(round_num):
 # Main
 send_sock=[]
 recv_conn = []
+players_nick = []
 def main():
     global current_player, live_players, small_blind, small_blind_amt, big_blind
     global last_raised_amt, last_raised_by, last_raised
@@ -159,9 +160,9 @@ def main():
         recv_conn.append(conn)
         try:
             data = conn.recv(1024)
-            if data == 'req':
-                print addr[0]
-                ip_array.append(addr[0])
+            print addr[0]
+            players_nick.append(data[:4])
+            ip_array.append(addr[0])
         except:
             print 'we are unable to receive data from client or bad request'
         if(len(ip_array) == NO_OF_PLAYERS):
@@ -179,7 +180,7 @@ def main():
         print ' Sending check data  to '
         print S_HOST
         send_sock[i].connect((S_HOST, S_PORT))
-        data = 'req=check$'
+        data = 'req=check:players_nick=' + str(players_nick) + '$'
         send_sock[i].send(data)
         i += 1
     pot_money = []

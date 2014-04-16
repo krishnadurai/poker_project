@@ -36,6 +36,14 @@ def handle_data():
             for data in q_data.split('$'):
                 req_type = data.partition(':')[0].partition('=')[2]
                 if req_type == 'check':
+                    temp = data.partition(':')[2]
+                    paramlist = temp.split(';')
+                    for param in paramlist:
+                        if param.partition('=')[0] == 'players_nick':
+                            temp1 = param.partition('=')[2]
+                            temp1 = temp1.strip('[').strip(']').split(',')
+                            for i in range(len(temp1)):
+                                poker_data.players_nick.append(temp1[i])
                     print 'Connection established'
                 elif req_type == 'reset':
                     poker_data.hand_cards = ['images/front', 'images/front']
@@ -167,7 +175,7 @@ except:
 
 try:
     sock_send_data.connect((S_HOST, S_PORT))
-    sock_send_data.send('req')
+    sock_send_data.send(raw_input('Enter Your Nick : '))
 except:
     print 'connect error'
 
@@ -179,6 +187,7 @@ class Message:
     no_of_pots = 0
     pot_money = [0] * 7
     NO_OF_PLAYERS = 0
+    players_nick = []
     ingame = [0, 0, 0, 0, 0, 0, 0, 0]
     money_in_pot = [0, 0, 0, 0, 0, 0, 0, 0]
     remaining_money = [1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500]
@@ -340,12 +349,17 @@ while True:
             i = (k-poker_data.mypos+8)%8
             rem_money_textpos = rem_money_text.get_rect()
             bet_money_textpos = bet_money_text.get_rect()
-            rem_money_textpos.centerx = money_pos[i][0]
+            rem_money_textpos.centerx = money_pos[i][0] + 30
             bet_money_textpos.centerx = pot_pos[i][0]
             rem_money_textpos.centery = money_pos[i][1]
             bet_money_textpos.centery = pot_pos[i][1]
             screen.blit(rem_money_text, rem_money_textpos)
             screen.blit(bet_money_text, bet_money_textpos)
+            nick_text = font.render(poker_data.players_nick[k] , 1, (255,255,255))
+            nick_text_pos = nick_text.get_rect()
+            nick_text_pos.centerx = money_pos[i][0] - 20
+            nick_text_pos.centery = money_pos[i][1]
+            screen.blit(nick_text, nick_text_pos)
         j += 1
         j %= 8
     '''
