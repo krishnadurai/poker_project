@@ -177,8 +177,8 @@ def main():
     while(i < NO_OF_PLAYERS):
         S_HOST = ip_array[i]
         send_sock.append(socket(AF_INET, SOCK_STREAM))
-        print ' Sending check data  to '
-        print S_HOST
+        #print ' Sending check data  to '
+        #print S_HOST
         send_sock[i].connect((S_HOST, S_PORT))
         data = 'req=check:players_nick=' + str(players_nick) + '$'
         send_sock[i].send(data)
@@ -228,7 +228,8 @@ def main():
             data = 'req=cards:' + cards[i * 2] + "," + cards[i * 2 + 1] + '$'
             if live_players[i] == 1 or live_players[i] ==2:
                 threads.append(threading.Thread(target = send_data, args = (data,i,)))
-                threads[-1].start()
+                threads[-1].start() 
+            print str(players_nick[i]) + ' ==> ' + str(cards[(i*2):((i*2)+2)])
             i += 1
         for t in threads:
             t.join()
@@ -238,7 +239,7 @@ def main():
         threads = []
         i = 0
         # Sending Public Data
-        print 'sending data '
+        #print 'sending data '
         while(i < NO_OF_PLAYERS):
             data = 'req=data:' + 'nop=' + str(NO_OF_PLAYERS) + ';live=' + str(live_players) + ';yourPos=' + str(i) + ";sb=" + str(small_blind) + ";current_player=" + str(current_player) + ";NO_OF_POTS=" + str(no_of_pots) + ";players_money=" + str(players_money) + ";pot_investment=" +str(pot_investment) + ";last_raised_amt=" + str(last_raised_amt) + ';pot_money=' + str(pot_money) + ';last_raised_by=' + str(last_raised_by) + '$'
             threads.append(threading.Thread(target = send_data, args = (data,i,)))
@@ -252,7 +253,7 @@ def main():
         threads = []
         round_cards = []
         # Rounds start now
-        print ' round  STARTS NOW>>>>>>>>>'
+        #print ' round  STARTS NOW>>>>>>>>>'
         for current_round in all_rounds:
             print 'round ' + current_round[0] + ' started '
             # ALL play
@@ -275,7 +276,7 @@ def main():
 
             somebody_raised = False
             p_list = get_player_list(current_round[1])
-            print p_list
+            #print p_list
             #ALL play
             for player in p_list:
                 if get_no_of_live_players() <= 1:
@@ -284,12 +285,12 @@ def main():
 
                 current_player = player
                 send_them_all('req=data:current_player=' + str(current_player) + '$')
-                print ' in all play current_player = ' + str(current_player)
+                #print ' in all play current_player = ' + str(current_player)
 
                 t = threading.Thread(target = recv_data , args = ())
                 t.start()
                 t.join()
-                print 'curr_data_recvd after join is ' + thread_recvd_data.curr_data_recvd
+                #print 'curr_data_recvd after join is ' + thread_recvd_data.curr_data_recvd
                 req_type = thread_recvd_data.curr_data_recvd.partition(':')[0].partition('=')[2]
                 if req_type == 'raiseTO':
                     print str(current_player) + '  raised'
@@ -354,18 +355,18 @@ def main():
                         no_of_pots = side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, current_rnd_pot_amt, current_rnd_pot)
 
 
-            print 'somebody_raised is ' + str(somebody_raised)
+            #print 'somebody_raised is ' + str(somebody_raised)
             # If somebody raised 
             # raise wala code
             if somebody_raised:
-                print 'current_player an last_raised are ' + str(current_player) + '  :::::  ' +  str(last_raised)
+                #print 'current_player an last_raised are ' + str(current_player) + '  :::::  ' +  str(last_raised)
 
                 while(current_player != last_raised): 
                     if get_no_of_live_players() <= 1:
                         print 'Only one Player left'
                         break
 
-                    print ' in raise play current_player = ' + str(current_player)
+                    #print ' in raise play current_player = ' + str(current_player)
                     t = threading.Thread(target = recv_data , args = ())
                     t.start()
                     t.join()
@@ -383,7 +384,7 @@ def main():
 
                         last_raised_amt = int(thread_recvd_data.curr_data_recvd.partition(':')[2].partition('=')[2]) 
                         players_money[current_player] -= (last_raised_amt - pot_investment[current_player])
-                        print '------IN Raise play (raiseTO) side_pot is : ' + str(side_pot)
+                        #print '------IN Raise play (raiseTO) side_pot is : ' + str(side_pot)
                         if side_pot:
                             pot_investment[current_player] = last_raised_amt
                             no_of_pots = side_pot_handler(no_of_pots, pot_investment, pot_players, pot_money, current_rnd_pot_amt, current_rnd_pot)
@@ -396,8 +397,8 @@ def main():
                         print str(current_player) + '  folded'
                         live_players[current_player] = 0
                         removeFromPots(current_player, pot_players)
-                        print 'player ' + str(current_player) + ' removed '
-                        print pot_players
+                        #print 'player ' + str(current_player) + ' removed '
+                        #print pot_players
                         send_them_all('req=data:live=' + str(live_players) + '$')
 
                     elif req_type == 'call':

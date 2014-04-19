@@ -50,7 +50,7 @@ def handle_data():
                     for i in range(5):
                         poker_data.com_cards[i] = 'images/front'
                 elif req_type == 'init':
-                    print req_type
+                    #print req_type
                     temp = data.partition(':')[2]
                     paramlist = temp.split(';')
                     for param in paramlist:
@@ -66,13 +66,13 @@ def handle_data():
                             for i in range(len(temp)):
                                 poker_data.remaining_money[i] = int(temp[i])
                 elif req_type == 'cards':
-                    print req_type
+                    #print req_type
                     card1 = data.partition(':')[2].partition(',')[0]
                     card2 = data.partition(':')[2].partition(',')[2]
                     poker_data.hand_cards[0] = 'images/' + card1
                     poker_data.hand_cards[1] = 'images/' + card2
                 elif req_type == 'data':
-                    print req_type
+                    #print req_type
                     temp = data.partition(':')[2]
                     paramlist = temp.split(';')
                     for param in paramlist:
@@ -301,15 +301,18 @@ while True:
             sys.exit()
         elif 'click' in fold_events:
             print 'Fold button clicked'
-            poker_data.hand_cards[0] = 'images/front'
-            poker_data.hand_cards[1] = 'images/front'
-            thread.start_new_thread(send_data, ('req=fold:',))
-            break
+            if poker_data.current_player == poker_data.mypos:
+                poker_data.hand_cards[0] = 'images/front'
+                poker_data.hand_cards[1] = 'images/front'
+                thread.start_new_thread(send_data, ('req=fold:',))
+                poker_data.current_player = -1
+                break
         elif 'click' in call_events:
             print 'CALL button clicked'
             if poker_data.current_player == poker_data.mypos:
                 print 'attempting to send data'
                 thread.start_new_thread(send_data, ('req=call:amt='+str(min(poker_data.last_raised_amt, (poker_data.remaining_money[poker_data.mypos] + poker_data.money_in_pot[poker_data.mypos]))),))
+                poker_data.current_player = -1
                 break
         elif 'click' in raise_events:
             print 'RAISE button clicked'
@@ -317,6 +320,7 @@ while True:
                 print 'attempting to send data'
                 slider_value = str(poker_data.bet_amount)
                 thread.start_new_thread(send_data, ('req=raiseTO:amt='+str(poker_data.bet_amount),))
+                poker_data.current_player = -1
                 break
         elif event.type is KEYDOWN and event.key == K_ESCAPE:
             pass
